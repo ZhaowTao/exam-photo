@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "exam-photo"
-version = "1.0.0"
+version = "1.0.1"
 description = "Cross-platform registration photo tool: reproduces China's official PhotoProcess.exe output spec on macOS/Linux/Windows"
 readme = "README.md"
 requires-python = ">=3.8"

@@ -121,6 +121,17 @@ def test_validate_accepts_correct_output(tmp_path):
     assert res.ok, res.issues
 
 
+def test_build_tag_survives_packaging():
+    """The tag is printed by --version; pin it so a stripped fork shows up."""
+    from exam_photo._marks import ROOT_TAG, tag
+
+    assert len(ROOT_TAG) == 4
+    assert all(ch in "0123456789abcdef" for ch in ROOT_TAG)
+    assert ROOT_TAG == "da07"
+    assert tag("presets") == "3a92"
+    assert tag("no_such_module") == ROOT_TAG
+
+
 def test_transparent_png_becomes_white_not_black(tmp_path):
     """Regression: RGBA -> JPEG used to render the transparent area black."""
     from exam_photo.cli import _open_rgb

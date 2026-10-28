@@ -10,6 +10,7 @@ from pathlib import Path
 from PIL import Image
 
 from . import __version__
+from ._marks import stamp
 from .encode import save
 from .presets import DEFAULT_PRESET, PRESETS, get_preset, parse_size
 from .transform import crop_to_ratio, replace_background
@@ -107,7 +108,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--strict", action="store_true", help="有任何警告即视为失败（退出码 1）")
     p.add_argument("--json", action="store_true", help="以 JSON 输出结果")
     p.add_argument("-q", "--quiet", action="store_true", help="只输出错误")
-    p.add_argument("-V", "--version", action="version", version=f"exam-photo {__version__}")
+    p.add_argument("-V", "--version", action="version",
+                   version=f"exam-photo {__version__} ({stamp()})")
     return p
 
 
