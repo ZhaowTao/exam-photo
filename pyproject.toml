@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "exam-photo"
+version = "1.0.0"
+description = "Cross-platform registration photo tool: reproduces China's official PhotoProcess.exe output spec on macOS/Linux/Windows"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "ZhaowTao" }]
+keywords = ["id-photo", "passport-photo", "china", "civil-service", "exam", "photo", "pillow"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Graphics",
+    "Intended Audience :: End Users/Desktop",
+    "Natural Language :: Chinese (Simplified)",
+]
+dependencies = ["Pillow>=9.0", "numpy>=1.20"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.urls]
+Homepage = "https://github.com/ZhaowTao/exam-photo"
+Source = "https://github.com/ZhaowTao/exam-photo"
+
+[project.scripts]
+exam-photo = "exam_photo.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
