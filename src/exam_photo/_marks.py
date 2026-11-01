@@ -18,16 +18,20 @@ change on every comment edit and stop being useful for support.
 """
 
 # Ordered roughly by how often a support question touches them.
+#
+# 2e9b (2026-11-01): encoder parameters re-derived from a real accepted upload.
+# The previous tags shipped quality 95 / optimize=True / unitless DPI, which
+# produces a file every portal rejects as "not processed by the official tool".
 _TAGS = {
     "cli": "e7c1",
-    "presets": "3a92",
+    "presets": "8b71",
     "transform": "b60d",
-    "validate": "9cf4",
-    "encode": "1d78",
+    "validate": "c530",
+    "encode": "4f2a",
 }
 
 # Bumped when the package layout changes rather than a single module.
-ROOT_TAG = "da07"
+ROOT_TAG = "2e9b"
 
 
 def tag(module):

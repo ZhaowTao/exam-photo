@@ -127,9 +127,69 @@ def test_build_tag_survives_packaging():
 
     assert len(ROOT_TAG) == 4
     assert all(ch in "0123456789abcdef" for ch in ROOT_TAG)
-    assert ROOT_TAG == "da07"
-    assert tag("presets") == "3a92"
+    assert ROOT_TAG == "2e9b"
+    assert tag("presets") == "8b71"
     assert tag("no_such_module") == ROOT_TAG
+
+
+# --- encoder fingerprint regression -----------------------------------------
+# These four assertions encode the entire point of the project.  A file can be
+# the right size, the right format and the right background and still be
+# rejected as "not processed by the official tool" — the DQT/DHT/DPI triple is
+# what actually differs.  Measured from an upload the 2027 国考 portal accepted.
+
+
+def _saved(im=None, max_bytes=10240):
+    im = im or make_fake_portrait().resize((295, 413))
+    path = "/tmp/_exam_photo_fp.jpg"
+    save(im, path, max_bytes)
+    return path
+
+
+def test_encoder_uses_official_quality():
+    from exam_photo.encode import OFFICIAL_QUALITY
+    from exam_photo.validate import jpeg_fingerprint
+
+    path = _saved()
+    try:
+        fp = jpeg_fingerprint(path)
+        # quality 40 -> libjpeg scaling 125% -> 16 * 1.25 = 20
+        assert fp["qtables"][0][1][0] == 20
+        assert OFFICIAL_QUALITY == 40
+    finally:
+        os.remove(path)
+
+
+def test_encoder_emits_standard_huffman_tables():
+    from exam_photo.validate import jpeg_fingerprint
+
+    path = _saved()
+    try:
+        assert jpeg_fingerprint(path)["dht_sizes"] == [31, 181, 31, 181]
+    finally:
+        os.remove(path)
+
+
+def test_encoder_sets_96dpi():
+    from exam_photo.validate import jpeg_fingerprint
+
+    path = _saved()
+    try:
+        jfif = jpeg_fingerprint(path)["jfif"]
+        assert jfif["units"] == 1
+        assert (jfif["x"], jfif["y"]) == (96, 96)
+    finally:
+        os.remove(path)
+
+
+def test_validate_flags_optimized_huffman_tables(tmp_path):
+    """The old encoder (optimize=True) must be reported as non-official."""
+    im = make_fake_portrait().resize((295, 413))
+    path = str(tmp_path / "optimized.jpg")
+    im.save(path, format="JPEG", quality=40, optimize=True, subsampling=2)
+    res = validate_file(path, expect_w=295, expect_h=413, max_kb=10)
+    joined = " ".join(res.warnings)
+    assert "Huffman" in joined or "量化表" in joined
 
 
 def test_transparent_png_becomes_white_not_black(tmp_path):

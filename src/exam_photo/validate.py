@@ -119,6 +119,92 @@ def jpeg_segments(path: str) -> List[str]:
     return segs
 
 
+def jpeg_fingerprint(path: str) -> dict:
+    """Read back the encoder parameters that distinguish one writer from another.
+
+    Size, ratio and background say nothing about *who* encoded the file.  The
+    quantisation tables, the Huffman table sizes and the JFIF density do, and
+    they are what the registration portals' "this photo was not produced by our
+    tool" rejection actually keys off.  See :mod:`exam_photo.encode`.
+    """
+    with open(path, "rb") as fh:
+        data = fh.read()
+
+    qtables, dht_sizes, jfif = [], [], None
+    i = 2
+    while i < len(data) - 1:
+        if data[i] != 0xFF:
+            break
+        marker = data[i + 1]
+        if marker == 0xDA:
+            break
+        if marker in (0xD8, 0xD9):
+            i += 2
+            continue
+        length = int.from_bytes(data[i + 2:i + 4], "big")
+        seg = data[i + 4:i + 2 + length]
+
+        if marker == 0xE0 and seg[:5] == b"JFIF\x00" and len(seg) >= 12:
+            units = seg[7]
+            xd = int.from_bytes(seg[8:10], "big")
+            yd = int.from_bytes(seg[10:12], "big")
+            jfif = {"units": units, "x": xd, "y": yd}
+        elif marker == 0xDB:
+            p = 0
+            while p < len(seg):
+                precision = seg[p] >> 4
+                table_id = seg[p] & 0x0F
+                p += 1
+                step = 128 if precision else 64
+                qtables.append((table_id, list(seg[p:p + step])))
+                p += step
+        elif marker == 0xC4:
+            dht_sizes.append(length)
+
+        i += 2 + length
+
+    return {"qtables": qtables, "dht_sizes": dht_sizes, "jfif": jfif}
+
+
+def check_encoder_fingerprint(path: str, res: CheckResult) -> None:
+    """Flag files that were not written with the official encoder parameters."""
+    try:
+        fp = jpeg_fingerprint(path)
+    except Exception as exc:  # noqa: BLE001
+        res.warn(f"无法读取 JPEG 编码指纹：{exc}")
+        return
+
+    qt = fp["qtables"]
+    if qt:
+        first = qt[0][1][0]
+        res.meta["quant_luma_first"] = first
+        # libjpeg: quality 40 -> 5000/40 = 125% -> standard table 16 becomes 20
+        if first != 20:
+            res.warn(
+                f"亮度量化表首值为 {first}，官方工具输出为 20（quality=40）。"
+                "该文件大概率被报名系统判为「未经过照片处理工具处理」，"
+                "请用本工具重新生成，或用 --check-only 对比官方文件"
+            )
+
+    dht = fp["dht_sizes"]
+    if dht:
+        res.meta["dht_sizes"] = dht
+        if dht != [31, 181, 31, 181]:
+            res.warn(
+                f"Huffman 表段长为 {dht}，官方工具为 [31, 181, 31, 181]（标准表）。"
+                "自定义/优化表说明编码器不是官方那一套"
+            )
+
+    jfif = fp["jfif"]
+    if jfif:
+        res.meta["jfif_density"] = (jfif["x"], jfif["y"]) if jfif["units"] else None
+        if jfif["units"] and (jfif["x"], jfif["y"]) != (96, 96):
+            res.warn(
+                f"JFIF 密度为 {jfif['x']}x{jfif['y']} dpi，官方工具输出为 96x96"
+            )
+
+
+
 def validate_file(
     path: str,
     expect_w: Optional[int] = None,
@@ -166,6 +252,8 @@ def validate_file(
     for bad in ("EXIF", "ICC", "SOF2", "DRI"):
         if bad in segs:
             res.warn(f"含 {bad} 段，个别老式上传接口会拒收（本工具输出默认不含）")
+
+    check_encoder_fingerprint(path, res)
 
     arr = np.asarray(im.convert("RGB"))
     check_background(arr, res, allowed_bg)

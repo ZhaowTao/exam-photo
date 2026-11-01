@@ -3,9 +3,11 @@
 
 The values here were extracted from the official Windows tool
 ``PhotoProcess.exe`` (v1.0.0.25, 人社部人事考试中心) and its bundled
-``photo.ini``.  Only ``rsks`` is hard-verified against that binary; the other
-presets are commonly published sizes and must always be double-checked
-against the announcement you are applying to.
+``photo.ini``.  Only ``rsks`` is hard-verified — and not merely against the
+binary: the encoder parameters it implies have been confirmed against a file
+that the 2027 national civil-service registration portal actually accepted.
+The other presets are commonly published sizes and must always be
+double-checked against the announcement you are applying to.
 """
 
 from dataclasses import dataclass
@@ -26,14 +28,15 @@ class Preset:
 
 
 PRESETS = {
-    # Hard-verified against PhotoProcess.exe / photo.ini
+    # Hard-verified against PhotoProcess.exe / photo.ini, and against a real
+    # upload accepted by the 2027 国考 registration portal.
     "rsks": Preset(
         key="rsks",
         width=295,
         height=413,
         max_kb=10.0,
         label="人社部人事考试 / 国考 / 事业单位 / 烟草（1寸）",
-        note="295x413 @ 75dpi 版式，官方工具固定输出此尺寸，文件约 10KB",
+        note="295x413、JFIF 96dpi、quality 40，实测通过国考报名确认，文件约 6.5KB",
     ),
     # Common sizes — verify against your announcement
     "1inch": Preset(
